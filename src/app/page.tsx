@@ -49,6 +49,15 @@ interface DifficultyConfig {
 // GAME CONFIGURATION
 // ============================================================================
 
+// Mobile detection - screens narrower than 768px are considered mobile
+const isMobileScreen = () => {
+  if (typeof window === 'undefined') return false;
+  return window.innerWidth < 768;
+};
+
+// Mobile speed multiplier - makes all difficulties proportionally faster on mobile
+const MOBILE_SPEED_MULTIPLIER = 1.6;
+
 const DIFFICULTY_CONFIGS: Record<Difficulty, DifficultyConfig> = {
   easy: {
     baseSpeed: 1.2,
@@ -77,6 +86,11 @@ const DIFFICULTY_CONFIGS: Record<Difficulty, DifficultyConfig> = {
     speedIncreaseRate: 0.0015,
     spawnDecreaseRate: 0.96,
   },
+};
+
+// Helper function to get speed adjusted for mobile
+const getAdjustedSpeed = (baseSpeed: number): number => {
+  return isMobileScreen() ? baseSpeed * MOBILE_SPEED_MULTIPLIER : baseSpeed;
 };
 
 const BALLOON_COLORS = {
@@ -348,9 +362,11 @@ export default function PopTheBalloonGame() {
     const config = DIFFICULTY_CONFIGS[difficulty];
     const currentTime = Date.now();
 
-    // Dynamic difficulty scaling
+    // Dynamic difficulty scaling with mobile speed adjustment
     const elapsedSeconds = (currentTime - game.startTime) / 1000;
-    game.currentSpeed = config.baseSpeed + elapsedSeconds * config.speedIncreaseRate;
+    const baseSpeed = config.baseSpeed + elapsedSeconds * config.speedIncreaseRate;
+    game.currentSpeed = getAdjustedSpeed(baseSpeed);
+    
     game.currentSpawnInterval = Math.max(
       300,
       config.spawnInterval * Math.pow(config.spawnDecreaseRate, elapsedSeconds / 10)
@@ -552,7 +568,7 @@ export default function PopTheBalloonGame() {
     game.nextBalloonId = 0;
     game.lastSpawnTime = Date.now();
     game.currentSpawnInterval = config.spawnInterval;
-    game.currentSpeed = config.baseSpeed;
+    game.currentSpeed = getAdjustedSpeed(config.baseSpeed);
     game.startTime = Date.now();
     game.bonusEndTime = 0;
 
